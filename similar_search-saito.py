@@ -1,41 +1,37 @@
+###### VGG19中のfc2層までの特徴量抽出法を使用し、任意のフォルダの画像の中から目的の画像と類似する画像を探す #####
+
+
+import numpy as np
+import glob
+from pathlib import Path
+import tkinter
+import tkinter.filedialog
+from tkinter import ttk,N,E,S,W,font
+
+#https://github.com/nmslib/nmslib/blob/master/README.md
+import nmslib
 
 import warnings
 warnings.resetwarnings()
 warnings.simplefilter('ignore', FutureWarning)
 
 
-import glob
-from pathlib import Path #pathlibはオブジェクトで扱う
-import tkinter
-import tkinter.filedialog
-from tkinter import ttk,N,E,S,W,font
-
-#Apache License Version 2.0
-#https://github.com/nmslib/nmslib/blob/master/README.md
-import nmslib
-
-#https://numpy.org/license.html
-import numpy as np
-
-#
-#current_path = Path.cwd()
+#Pathの設定
+current_path = Path.cwd()
 program_path = Path(__file__).parent.resolve() #.parent.resolve()：親ディレクトリを取得後、絶対パスに変換 プログラムがおいてある場所
 parent_path = program_path.parent.resolve()    #similarsearchの場所
 
 data_path           = parent_path / 'data'
 data_processed_path = data_path / 'processed'
 
-# refer https://qiita.com/wasnot/items/20c4f30a529ae3ed5f52
-# refer https://qiita.com/K-jun/items/cab923d49a939a8486fc
-
-
 
 def main():
     print("データベースを選択してください")
     print("サブディレクトリ内の画像もすべて検索対象となります")
 
-    tk = tkinter.Tk() #tkinterを表示させない
-    tk.withdraw()     #tkinterを表示させない
+    #tkinterを非表示
+    tk = tkinter.Tk()
+    tk.withdraw()
 
     data_folder_path = tkinter.filedialog.askdirectory(initialdir = data_processed_path,
                         title = 'choose data folder')
@@ -44,8 +40,6 @@ def main():
     test_img_path = tkinter.filedialog.askopenfilename(initialdir = data_processed_path,
                         title = 'choose test image', filetypes = [('image file', '*.jpeg;*jpg;*png')])
 
-    #License
-    #The MIT License
     import keras
     from keras.models import Model
     from keras.layers import Input, Dense
@@ -53,13 +47,10 @@ def main():
     from keras.preprocessing import image
     from keras.applications.vgg19 import preprocess_input
 
-    #License
-    #These weights are ported from the ones released by VGG at Oxford under the Creative Commons Attribution License.
-    #https://keras.io/applications/
+    # refer https://qiita.com/K-jun/items/cab923d49a939a8486fc
     from keras.applications.vgg19 import VGG19, preprocess_input
 
     base_model = VGG19(weights="imagenet") #VGG19の設定と、VGG19でimagenetを使用した時の重み付けを使用
-    #base_model = InceptionV3(weights="imagenet")
     #base_model.summary()
     model = Model(inputs=base_model.input, outputs=base_model.get_layer("fc2").output)
 
@@ -69,8 +60,7 @@ def main():
     x = preprocess_input(x)
     test_fc2_features = model.predict(x)
 
-
-    png_list  = glob.glob(data_folder_path + "/**/*.png", recursive=True)   #/**/且つrecursiveで現在のフォルダ以下にフォルダがあっても読み込んでくれる
+    png_list  = glob.glob(data_folder_path + "/**/*.png", recursive=True) #/**/且つrecursiveで現在のフォルダ以下にフォルダがあっても読み込んでくれる
     jpeg_list = glob.glob(data_folder_path + "/**/*.jpeg", recursive=True)
     jpg_list  = glob.glob(data_folder_path + "/**/*.jpg", recursive=True)
     image_list = png_list + jpeg_list + jpg_list
@@ -103,15 +93,13 @@ def main():
     warnings.resetwarnings()
     #print(fc2_list)
 
-    # Annoy同様にデータを入れてbuildする。Numpy配列で入れられる。
+    # refer https://qiita.com/wasnot/items/20c4f30a529ae3ed5f52
     index = nmslib.init(method='hnsw', space='cosinesimil')
     index.addDataPointBatch(fc2_list)
     index.createIndex({'post': 2}, print_progress=True)
 
-    # 基本的にAnnoy同様に一件ずつ検索して、返却される。
     ids, distances = index.knnQuery(test_fc2_features[0], k=len(image_list))
     result = [image_list[i] for i in ids]
-
     print(ids)
     print(distances)
     print(result)
@@ -133,8 +121,10 @@ def main():
 if __name__ == "__main__" :
     main()
 
-# tkinter
+
+
 '''
+# tkinter
 root = tkinter.Tk()
 
 font1 = font.Font(family='游ゴシック', size=10, weight='bold')
