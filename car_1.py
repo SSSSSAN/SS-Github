@@ -6,6 +6,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
+from sklearn.metrics import classification_report, confusion_matrix
+import dlt
 
 import keras.models
 from keras.models import Model
@@ -42,7 +45,7 @@ n_categories        = len(label)
 classes_num         = 5
 
 steps_per_epoch     = 10
-epochs              = 15
+epochs              = 10
 validation_steps    = 10
 
 #モデルの設定
@@ -162,7 +165,7 @@ test_generator = test_datagen.flow_from_directory(
     target_size=(input_image_size,input_image_size),
     batch_size=batch_size,
     class_mode='categorical',
-    shuffle=True
+    shuffle=False
     )
 
 #学習
@@ -173,6 +176,45 @@ history = model.fit_generator(
     validation_data=validation_generator,
     validation_steps=validation_steps,
     )
+
+def plot_confusion_matrix(cm, classes, cmap):
+    plt.imshow(cm, cmap=cmap)
+    plt.colorbar()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.title('Confusion Matrix')
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+    plt.tight_layout()
+    plt.savefig('confusion_VGG.png')
+
+#Confution Matrix and Classification Report
+#https://datascience.stackexchange.com/questions/67424/confusion-matrix-results-in-cnn-keras
+#https://qiita.com/kotai2003/items/e85f17d7213cf84e3bcd
+Y_pred = model.predict_generator(validation_generator, steps=len(validation_generator))
+y_pred = np.argmax(Y_pred, axis=1)
+cm = confusion_matrix(validation_generator.classes, y_pred)
+cmap = plt.cm.Blues
+plot_confusion_matrix(cm, classes=classes, cmap=cmap)
+
+#cm_noemalized = cm.astype('float')/cm.sum(axis=1)[:, np.newaxis]
+#sns.heatmap(cm_noemalized, annot=True, square=True)
+#plt.ylabel('True label')
+#plt.xlabel('Predicted label')
+#plt.savefig('confusion_VGG.png')
+'''
+print('Confusion Matrix')
+print(cm)
+plt.matshow(cm)
+plt.title('Confusion matrix')
+plt.colorbar()
+plt.ylabel('True label')
+plt.xlabel('Predicted label')
+plt.show()
+print('Classification Report')
+print(classification_report(validation_generator.classes, y_pred, target_names=classes))
+'''
 
 #訓練時の正解率と損失値
 acc = history.history['accuracy']
