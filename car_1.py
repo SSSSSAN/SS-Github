@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.metrics import classification_report, confusion_matrix
-import dlt
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+import itertools
 
 import keras.models
 from keras.models import Model
@@ -44,9 +44,9 @@ batch_size          = 32
 n_categories        = len(label)
 classes_num         = 5
 
-steps_per_epoch     = 10
-epochs              = 10
-validation_steps    = 10
+steps_per_epoch     = 2
+epochs              = 1
+validation_steps    = 2
 
 #モデルの設定
 '''
@@ -177,7 +177,10 @@ history = model.fit_generator(
     validation_steps=validation_steps,
     )
 
-def plot_confusion_matrix(cm, classes, cmap):
+#Confution Matrix
+#https://datascience.stackexchange.com/questions/67424/confusion-matrix-results-in-cnn-keras
+#https://qiita.com/kotai2003/items/e85f17d7213cf84e3bcd
+def plot_confusion_matrix(cm, classes, normalize=False, cmap = plt.cm.Blues):
     plt.imshow(cm, cmap=cmap)
     plt.colorbar()
     plt.ylabel('True label')
@@ -186,35 +189,23 @@ def plot_confusion_matrix(cm, classes, cmap):
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes)
-    plt.tight_layout()
-    plt.savefig('confusion_VGG.png')
 
-#Confution Matrix and Classification Report
-#https://datascience.stackexchange.com/questions/67424/confusion-matrix-results-in-cnn-keras
-#https://qiita.com/kotai2003/items/e85f17d7213cf84e3bcd
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, cm[i, j],
+                    horizontalalignment="center",
+                    color="white" if cm[i, j] > thresh else "black")
+    plt.tight_layout()
+    plt.savefig('confusion_VGG_1.png')
+
 Y_pred = model.predict_generator(validation_generator, steps=len(validation_generator))
 y_pred = np.argmax(Y_pred, axis=1)
 cm = confusion_matrix(validation_generator.classes, y_pred)
-cmap = plt.cm.Blues
-plot_confusion_matrix(cm, classes=classes, cmap=cmap)
+plot_confusion_matrix(cm, classes=classes)
 
-#cm_noemalized = cm.astype('float')/cm.sum(axis=1)[:, np.newaxis]
-#sns.heatmap(cm_noemalized, annot=True, square=True)
-#plt.ylabel('True label')
-#plt.xlabel('Predicted label')
-#plt.savefig('confusion_VGG.png')
-'''
-print('Confusion Matrix')
-print(cm)
-plt.matshow(cm)
-plt.title('Confusion matrix')
-plt.colorbar()
-plt.ylabel('True label')
-plt.xlabel('Predicted label')
-plt.show()
-print('Classification Report')
-print(classification_report(validation_generator.classes, y_pred, target_names=classes))
-'''
 
 #訓練時の正解率と損失値
 acc = history.history['accuracy']
